@@ -682,7 +682,7 @@ The new pieces are `(0, 1)` in chart 1 and `(1, 0)` in chart 3. That is the top 
 
 The `(1, 0)` position in chart 1 is tile 2 with orientation 0. However, the `(1, 0)` position in the transition map is tile 2 with orientation 1. Those are different.
 
-This is a hard inconsistency. Filling in missing information is one thing, but having directly conflicting information makes this atas unsalvageable.This particular 1-3 taping is not allowed.
+This is a hard inconsistency. Filling in missing information is one thing, but having directly conflicting information makes this atlas unsalvageable.This particular 1-3 taping is not allowed.
 
 That makes physical sense, too. Where does tile 2 go when tiles 1 and 3 are taped together this way? Tile 2 goes on top of itself, but rotated from where it used to be. That doesn't work.
 
