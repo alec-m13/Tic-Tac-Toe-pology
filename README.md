@@ -742,6 +742,34 @@ Encoding capturing a piece is no different. Here's the move for player 2 taking 
                         o-------o        ==>                        o-------o
 </pre>
 
-The game can progress as a squence of turns where the computer offers all available moves and the player picks one for their turn. Some moves like the bishop's are allowed to repeat arbitrarily, so moves should have a repeatable modifier. Actually, since checkers jumps can be sequenced, there should be a way of telling which next moves are available from this one in a given turn. But that's not too complicated, we can figure it out later.
+The game can progress as a squence of turns where the computer offers all available moves and the player picks one for their turn. Some moves like the bishop's are allowed to repeat arbitrarily, so moves should have a repeatable modifier. Actually, since checkers jumps can be sequenced, there should be a way of telling which next moves are available from this one in a given turn. But that's not too complicated, we can figure it out. But first let's finish up the shape fitting.
 
-For now let's get back to the shape fitting. This is closely related to the view window, and both are related to the [exponential map](https://en.wikipedia.org/wiki/Exponential_map_(Riemannian_geometry)) of differential geometry.
+When we are designing a set of rules for a game, we encode the possible moves as a collection of move transformations like the ones above. A move transformation domain is a subset of the reference grid which contains the origin. Once all the moves have been defined, we take all the move transformation domains and place them on top of each other in the reference grid to get the minimal chart shape. This is what we use as the domain of charts for the game, and those charts in turn define the boards on which we can play. That way there is never any ambiguity about whether a move is allowed or not, and the check is always feasible by looking at just one chart. This saves time since we don't have to compute any global topological arrangements. The only thing we need to check is that any tiles which have different states in the product are in fact different tiles, a nontrivial ondition for some topologies.
+
+Back to the move definition language. We can assume that tile states have been decided before the moves are constructed, so we know what the states mean at this point. How to encode moves? Our lives would be easier if we had shorthand for declaring moves, like dynamically assigned variables, but all of that is just syntactical sugar. Let's try and keep it simple to program by not having those.
+
+A move is a piece of reference grid along with an assignment of tile states defining before and after the move. Moves may or may not link together, so each move has a list of which moves it can link to. These are often tied to position, so the available moves out are given by their oriented location in the reference grid. To declare linkable jumps in checkers, we attach some data to the topmost tile in the above figure. This data is on that tile pointing in the up direction and stating that either of the two jump moves can be executed from that position in that direction if they fit in the board.
+
+For tic-tac-toe, the standard move is turning an empty tile into a claimed tile. This is a fairly trivial move, encoded like so:
+
+<details><summary>Claiming a tile</summary><pre>
+         o-------o     ==>     o-------o
+         |   *   |     ==>     |   *   |
+         | *(0)* |     ==>     | *(1)* |
+         |   *   |     ==>     |   *   |
+         o-------o     ==>     o-------o
+</pre></details>
+
+The difficult part involves counting the tiles in a row. We can do this by using this kind of move:
+
+<details><summary>Counting tiles</summary><pre>
+         o-------o-------o     ==>     o-------o-------o
+         |   *   |       |     ==>     |   *   |       |
+         | *(1)* |  (1)  |     ==>     | *(3)* |  (1)  |
+         |   *   |       |     ==>     |   *   |       |
+         o-------o-------o     ==>     o-------o-------o
+</pre></details>
+
+Here state 1 is claimed by player 1 and state 3 is an intermediate state meaning claimed by player 1 but used in this sequence of moves already. We then repeat this move as many times as possible and that will count how many times we can move right with only stepping on player 1's tiles. Then this move terminates all the state 3 tiles are reverted to state 1s, and this information has to be presented in the move. So there has to be another move which just turns state 3 into state 1 and can start from anywhere.
+
+So it looks like the linked moves can be declared as starting at a particular position or not, and if not then the game will try it out on all tiles in all positions. Not bad. Let's see if we can code it up.
