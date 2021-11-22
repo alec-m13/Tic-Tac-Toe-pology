@@ -1,5 +1,3 @@
-<details><summary>testing skipper</summary>
-
 # Tic-Tac-Toe-pology
 
 The purpose of this is to play board games on topologically active surfaces. Not only can the board be a surface like the [Mobius strip](https://en.wikipedia.org/wiki/M%C3%B6bius_strip) or the [torus](https://en.wikipedia.org/wiki/Torus), but the board can change during gameplay as well. The idea is to construct the board as a discretized version of a [manifold](https://en.wikipedia.org/wiki/Manifold) where charts are required to be large enough that token movement makes sense.
@@ -687,7 +685,6 @@ The `(1, 0)` position in chart 1 is tile 2 with orientation 0. However, the `(1,
 This is a hard inconsistency. Filling in missing information is one thing, but having directly conflicting information makes this atas unsalvageable.This particular 1-3 taping is not allowed.
 
 That makes physical sense, too. Where does tile 2 go when tiles 1 and 3 are taped together this way? Tile 2 goes on top of itself, but rotated from where it used to be. That doesn't work.
-</details>
 
 # Moves
 
