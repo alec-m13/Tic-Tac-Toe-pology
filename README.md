@@ -704,7 +704,7 @@ Let's define one of the simplest moves available: the checkers piece. Not the ju
         | * X * |
         |   *   |
         o-------o
-</pre>
+</pre></details>
 
 The fact that this move requires this domain means this move is unavailable to the uppermost row on a chessboard, since there's no way to go up from there. Likewise the right-most column is unavailable. So that's a good start. We can work out the details of fitting this shape into the board later.
 
@@ -720,7 +720,7 @@ For now we want to encode what the actual move is. The initial and final states 
         | *(1)* |                ==>        | *(0)* |
         |   *   |                ==>        |   *   |
         o-------o                ==>        o-------o
-</pre>
+</pre></details>
 
 The domain defines the context available in this move (the current tile and its top-right neighbor), and the tile states define the move's action. This one says if the current tile is in state 1 and its top-right neighbor is in state 0, then after this move the current tile will be in state 0 and the neighbor will be in state 1. That seems to capture the essence of this move.
 
@@ -740,7 +740,7 @@ Encoding capturing a piece is no different. Here's the move for player 2 taking 
                         | *(2)* |        ==>                        | *(0)* |
                         |   *   |        ==>                        |   *   |
                         o-------o        ==>                        o-------o
-</pre>
+</pre></details>
 
 The game can progress as a squence of turns where the computer offers all available moves and the player picks one for their turn. Some moves like the bishop's are allowed to repeat arbitrarily, so moves should have a repeatable modifier. Actually, since checkers jumps can be sequenced, there should be a way of telling which next moves are available from this one in a given turn. But that's not too complicated, we can figure it out. But first let's finish up the shape fitting.
 
