@@ -49,7 +49,34 @@
     }
 
     get(shape) {
+        this.comparators.boundIfHas(shape, SortedSet.identityFunction, this.postGetMake, this);
+    }
 
+    // helper function for get; usually don't call postgetMake directly
+    postGetMake(shape) {
+        if (typeof shape === "string") throw Error("cannot make a base comparator: " + shape + " was not initialized");
+        if (shape.function) {
+            // shape is a function
+            // this comparator is called on SortedMaps of this shape
+            // any two SortedMaps can be compared to each other if they have equivalent shapes
+            this.comparators.set(shape, SortedMap.mapComparator);
+        } else {
+            // shape is an array
+            let comparators = shape.map(x => this.get(x)), l, i, res;
+            // this comparator is called on arrays of this shape
+            this.comparators.set(shape, function(a, b) {
+                l = a.length;
+                i = b.length;
+                if (l !== i) return l-i;
+                i = 0;
+                while (i < l) {
+                    res = comparators[i](a[i], b[i]);
+                    if (res !== 0) return res;
+                    ++i;
+                }
+                return 0;
+            });
+        }
     }
 
     // multilayered lexographic sorter
@@ -79,6 +106,15 @@
                             if (o2.function) return ComparatorGenerator.shapeComparator(o1, o2); // e -> F vs e -> F
                             return -1; // e -> F vs e -> A
                         }
+                        if (o2.function) return 1; // e -> A vs e -> F
+                        // e -> A vs e -> A
+                        if (o1.length !== o2.length) return o1.length - o2.length;
+                        let l = o1.length, res;
+                        for (let i = 0; i < l; ++i) {
+                            res = ComparatorGenerator.shapeComparator(o1[i], o2[i]);
+                            if (res !== 0) return res;
+                        }
+                        return 0;
                     }
                     return -1; // e -> ? vs S -> ?
                 }
@@ -151,8 +187,26 @@
         return 0;
     }
 
+    // reduce singleton arrays to their elements
+    static fixShape(shape) {
+        if (typeof shape === "string") return shape;
+        let fix = ComparatorGenerator.fixShape;
+        if (shape.function) return {
+            function: true,
+            in: fix(shape.in),
+            out: fix(shape.out)
+        };
+        if (shape.length === 1) return fix(shape[0]);
+        return shape.map(fix);
+    }
+
+    static printShape(shape) {
+        console.log(ComparatorGenerator.shapeToString(shape));
+    }
+
     static shapeToString(shape) {
         if (typeof shape === "string") return shape;
-        return "("+ComparatorGenerator.shapeToString(shape.in)+" -> "+ComparatorGenerator.shapeToString(shape.out)+")";
+        if (shape.function) return "("+ComparatorGenerator.shapeToString(shape.in)+" -> "+ComparatorGenerator.shapeToString(shape.out)+")";
+        return "["+(shape.map(ComparatorGenerator.shapeToString).join(", ")) + "]";
     }
 }

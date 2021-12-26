@@ -27,23 +27,39 @@ Set replacement is done in place on the object [in, out]. The out value is direc
         this.size = 0;
     }
 
+
+    ifHas(obj, thenThis, elseThis) {
+        if (this.has(obj)) {
+            if (thenThis) return thenThis(this.processFound);
+        } else {
+            if (elseThis) return elseThis();
+        }
+    }
+
+    boundIfHas(obj, thenThis, elseThis, thisObject = this, ...args) {
+        if (this.has(obj)) {
+            if (thenThis) return thenThis.call(thisObject, this.processFound, ...args);
+        } else {
+            if (elseThis) return elseThis.call(thisObject, obj, ...args);
+        }
+    }
+
+    // JS Map functions
     clear() {
         this.set.clear();
         this.size = 0;
     }
 
     delete(obj) {
-        obj = [obj, SortedMap.wildcard];
-        if (this.sortedSet.has(obj)) {
-            --this.size;
-            return this.sortedSet.delete(obj, false); // false is to skip containment check
-        } else return false;
+        return this.boundIfHas(obj, this.postProcessDelete, SortedSet.returnFalse);
+    }
+    postProcessDelete(obj) {
+        --this.size;
+        return this.sortedSet.postProcessDelete(); // this.sortedSet already processed in this.delete call
     }
 
     get(obj) {
-        obj = this.sortedSet.process([obj, SortedMap.wildcard]);
-        if (obj === SortedSet.negativeResult) return undefined; // I'd prefer a domain error Symbol but undefined is compatible with JS Map
-        return obj;
+        return this.ifHas(obj, SortedSet.identityFunction, SortedSet.emptyFunction);
     }
     
     has(obj) {
@@ -51,7 +67,7 @@ Set replacement is done in place on the object [in, out]. The out value is direc
     }
 
     set(inElement, outElement) {
-        if (!this.delete([inElement, SortedMap.wildcard])) ++this.size;
+        if (!this.delete(inElement)) ++this.size;
         this.sortedSet.add([inElement, outElement]);
     }
 

@@ -53,135 +53,36 @@
     constructor(
         origin, // object <coordinateType>
         coordinateComparator, // function (<coordinateType>, <coordinateType>) => int
-        directions, // Set <coordinateType> (elements are called directions)
-        move, // function (<coordinateType>, <direction>) => <coordinateType>
-        orientations, // Set of Maps <direction> => <direction>
+        unitSphere, // SortedSet <coordinateType> (elements are called directions)
+        translate, // function (<coordinateType>, <coordinateType>) => <coordinateType>
+        orientations, // Set of functions <coordinateType> => <coordinateType> which take <direction> => <direction>
     ) {
         // direct setters
         this.origin = origin;
         this.coordinateComparator = coordinateComparator;
-        this.directions = directions;
-        this.move = move;
+        this.unitSphere = unitSphere;
+        this.translate = translate;
         this.orientations = orientations;
 
-        // other setters
-        this.encounteredCoordinates = [this.origin];
-
         // computable data
-        unifyDeclaredData.call(this);
-        findReverseDirections.call(this);
+        this.negativeDirections = this.computeNegativeDirections();
+
+        // consistency check
         //fleshOrientations.call(this);
+    }
+
+    computeNegativeDirections() {
+        let map = new SortedMap(this.coordinateComparator), translate = this.translate, sphere = this.unitSphere, origin = this.origin;
+        let neg;
+        for (let direction of sphere) {
+            neg = translate(direction, origin);
+            if (!sphere.has(neg)) throw Error("every direction must have a negative");
+            map.set(direction, neg);
+        }
+        return map;
     }
 
     isOrigin(coords) {
         return this.coordinateComparator(this.origin, coords) === 0;
     }
-
-    unifyCoordinates(coords) {
-        let encountereds = this.encounteredCoordinates, comp = this.coordinateComparator;
-        let low = 0, high = encountereds.length-1, mid = high, res;
-        if (comp(coords, encountereds[low]) < 0) {
-            encountereds.unshift(coords);
-            return coords;
-        }
-        if (comp(coords, encountereds[high]) >= 0) {
-            if (comp(coords, encountereds[high]) === 0) return encountereds[high];
-            encountereds.push(coords);
-            return coords;
-        }
-        while (low+1 < high) {
-            mid = (low + high) >>> 1;
-            res = comp(encountereds[mid], coords);
-            if (res > 0) {
-                high = mid;
-                continue;
-            }
-            if (res < 0) {
-                low = mid;
-                continue;
-            }
-            return encountereds[mid];
-        }
-        if (comp(coords, encountereds[low]) === 0) return encountereds[low];
-        if (comp(coords, encountereds[high]) === 0) return encountereds[high];
-        encountereds.splice(high, 0, coords);
-        return coords;
-    }
-
-    postUnify(f) {
-        return function(...args) {
-            return this.unifyCoordinates(f(...args));
-        }
-    }
-}
-
-function unifyDeclaredData() {
-    this.unifyCoordinates(this.origin);
-    for (let direction of this.directions) this.unifyCoordinates(direction);
-    this.move = this.postUnify(this.move);
-    let oldOrientations = this.orientations;
-    let ors = this.orientations = new Set();
-    let unifiedMap;
-    for (let ot of oldOrientations.values()) {
-        unifiedMap = new Map();
-        for (let e of ot.entries()) unifiedMap.set(this.unifyCoordinates(e[0]), this.unifyCoordinates(e[1]));
-        ors.add(unifiedMap);
-    }
-    console.log(this);
-}
-
-function findReverseDirections() {
-    let map = this.reverseDirections = new Map();
-    for (let direction of this.directions) map.set(direction, findReverseDirection.call(this, direction));
-}
-
-function findReverseDirection(direction) {
-    for (let otherDirection of this.directions) if (this.isOrigin(this.move(direction, otherDirection))) return otherDirection;
-    throw Error("uninvertible direction: " + direction);
-}
-
-function fleshOrientations() {
-    // orientation transformations
-    let encounteredMaps = new Set();
-    for (let orientation of this.orientations) encounteredMaps.add(orientation);
-    function unifyMap(map) {
-        for (let x of encounteredMaps) if (sameMap(x, map)) return x;
-        encounteredMaps.add(map);
-        return map;
-    }
-    // pairs of orientation transformations
-    let encounteredPairs = new Set();
-    function unifyPair(a, b) {
-        for (let pair of encounteredPairs) if (pair[0] === a && pair[1] === b) return {new: false, pair: pair};
-        let pair = [a, b];
-        encounteredPairs.add(pair);
-        return {new: true, pair: pair};
-    }
-    console.log("flesh killed");
-    console.log("encounteredMaps",encounteredMaps);
-    console.log("encounteredPairs",encounteredPairs);
-    // from pair of orientation transformations to orientation transformation
-    /*let group = new Map(), size = -1, pair;
-    while (size !== group.size) {
-        for (let a of encounteredMaps) for (let b of encounteredMaps) {
-            pair = unifyPair(a, b);
-            if (!pair.new) continue;
-            pair = pair.pair;
-            group.set(pair, unifyMap(composeMaps(...pair)));
-        }
-    }
-    for (let o of encounteredMaps) this.orientations.add(o);
-    this.orientationGroup = group;*/
-}
-
-function composeMaps(first, second) {
-    let comp = new Map();
-    for (let e of first.entries()) comp.set(e[0], second.get(e[1]));
-    return comp;
-}
-
-function sameMap(a, b) {
-    if (a.size !== b.size) return false;
-    for (let e of a.entries()) if (e[1] !== b.get(e[0])) return false;
-    return true;
 }

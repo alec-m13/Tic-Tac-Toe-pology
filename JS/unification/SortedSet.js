@@ -67,10 +67,15 @@ a distinct internal Symbol to represent binary search negative result. Don't use
         return this.processFound = SortedSet.negativeResult;
     }
 
-    // assuming that obj is comparator contained, returns the equivalent object which is actually contained
+    // if obj is contained then return the contained value, otherwise add obj and return it
     unify(obj) {
-        if (!this.has(obj)) throw Error("can only unify elements contained in this sorted set"); // has calls process which is important
-        return this.processFound;
+        return this.boundIfHas(obj, SortedSet.identityFunction, this.postProcessUnify);
+    }
+
+    // helper function for unify; usually don't call postProcessUnify directly
+    postProcessUnify(obj) {
+        this.postProcessAdd(obj);
+        return obj;
     }
 
     // if obj is about to be modified, call this method to get a callback which needs to be called
@@ -88,9 +93,29 @@ a distinct internal Symbol to represent binary search negative result. Don't use
         } else throw Error("can only notify with elements contained in this sorted set");
     }
 
+    ifHas(obj, thenThis, elseThis, ...args) {
+        if (this.has(obj)) {
+            if (thenThis) return thenThis(this.processFound, ...args);
+        } else {
+            if (elseThis) return elseThis(obj, ...args);
+        }
+    }
+
+    boundIfHas(obj, thenThis, elseThis, thisObject = this, ...args) {
+        if (this.has(obj)) {
+            if (thenThis) return thenThis.call(thisObject, this.processFound, ...args);
+        } else {
+            if (elseThis) return elseThis.call(thisObject, obj, ...args);
+        }
+    }
+
     // add obj if necessary and return the contained element which is equivalent to obj
     add(obj) {
-        if (this.has(obj)) return this.processFound;
+        return this.boundIfHas(obj, this.returnMe, this.postProcessAdd);
+    }
+
+    // helper function for add; usually don't call postProcessAdd directly
+    postProcessAdd(obj) {
         this.elements.splice(this.processIndex, 0, obj);
         ++this.size;
         this.processFound = obj;
@@ -105,11 +130,16 @@ a distinct internal Symbol to represent binary search negative result. Don't use
     }
 
     delete(obj, check = true) {
-        if (check && !this.has(obj)) return false; // nothing to delete
+        return this.boundIfHas(obj, this.postProcessDelete, SortedSet.returnFalse);
+    }
+
+    // helper function for delete; usually don't call postProcessDelete directly
+    postProcessDelete() {
         this.elements.splice(this.processIndex, 1);
         --this.size;
         this.processFound = SortedSet.negativeResult;
         return true;
+
     }
 
     has(obj) {
@@ -139,6 +169,18 @@ a distinct internal Symbol to represent binary search negative result. Don't use
         return this.elements.forEach(callback, thisArg);
     }
 
+    static fromElements(comparator, elements) {
+        let returner = new SortedSet(comparator);
+        for (let e of elements) returner.add(e);
+        return returner;
+    }
+
     // used for representing that no element was found which matches the requested value
     static negativeResult = Symbol("binary search false"); // don't use this object in a sorted set.
+
+    static emptyFunction() {}
+    static returnMe() {return this}
+    static returnFalse() {return false}
+    static identityFunction(x) {return x}
+    
 }
