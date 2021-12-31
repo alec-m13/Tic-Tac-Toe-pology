@@ -18,4 +18,10 @@
         }
         return 0;
     }
+
+    static generator(basis, comparator) {
+        return function(func) {
+            return new SortedFunction(basis, func, comparator)
+        }
+    }
 }

@@ -17,12 +17,14 @@ const rawOrientations = [
     a => [a[1], a[0]], // rotate right flip
     a => [a[0], -a[1]], // rotate twice flip
     a => [-a[1], -a[0]], // rotate left flip
-]
+];
+
+const sortedFunctionGenerator = SortedFunction.generator(basis, comparator);
 
 /*export*/ const Squares = new ReferenceGrid(
     origin,
     comparator,
     unitSphere,
     translate,
-    rawOrientations.map(f => new SortedFunction(basis, f, comparator))
+    rawOrientations.map(sortedFunctionGenerator)
 )

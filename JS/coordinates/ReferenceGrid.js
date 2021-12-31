@@ -55,7 +55,7 @@
         coordinateComparator, // function (<coordinateType>, <coordinateType>) => int
         unitSphere, // SortedSet <coordinateType> (elements are called directions)
         translate, // function (<coordinateType>, <coordinateType>) => <coordinateType>
-        orientations, // Set of functions <coordinateType> => <coordinateType> which take <direction> => <direction>
+        orientations, // Iterable of SortedFunctions <coordinateType> => <coordinateType> which take <direction> => <direction>
     ) {
         // direct setters
         this.origin = origin;
@@ -68,7 +68,7 @@
         this.negativeDirections = this.computeNegativeDirections();
 
         // consistency check
-        //fleshOrientations.call(this);
+        this.checkOrientations();
     }
 
     computeNegativeDirections() {
@@ -84,5 +84,30 @@
 
     isOrigin(coords) {
         return this.coordinateComparator(this.origin, coords) === 0;
+    }
+
+    checkOrientations() {
+        let raws = this.orientations, basis, comparator;
+        // get basis and comparator
+        for (let x of raws) {
+            basis = x.basis;
+            comparator = x.comparator;
+            break;
+        }
+        let orientations = this.orientations = new SortedSet(), f;
+        for (let x of raws) {
+            f = x.func;
+            if (!this.isOrigin(f(this.origin))) throw Error("orientations must fix the origin");
+            let outs = new SortedSet(this.coordinateComparator);
+            for (let d of this.unitSphere) outs.add(f(d));
+            if (this.unitSphere.size !== outs.size) throw Error("orientations must take different directions to different directions");
+            orientations.add(x);
+        }
+        let compose = function(f, g) {
+            return new SortedFunction(basis, x => f(g(x)), comparator);
+        }
+        let compositions = new SortedSet();
+        for (let x of raws) for (let y of raws) compositions.add(compose(x.func, y.func));
+        if (compositions.size !== orientations.size) throw Error("orientations must be closed under composition");
     }
 }

@@ -15,10 +15,11 @@ a distinct internal Symbol to represent binary search negative result. Don't use
 */
 
 /*export*/ class SortedSet {
-    constructor(comparator) {
+    constructor(comparator = SortedSet.compareToComparator, indexName = "index") {
         this.comparator = comparator;
         this.elements = [];
         this.size = 0;
+        this.indexName = indexName;
     }
 
     // search for obj
@@ -78,6 +79,7 @@ a distinct internal Symbol to represent binary search negative result. Don't use
         return obj;
     }
 
+    /*
     // if obj is about to be modified, call this method to get a callback which needs to be called
     // after the modification to fix the order of this SortedSet
     notifyModification(obj) {
@@ -92,6 +94,7 @@ a distinct internal Symbol to represent binary search negative result. Don't use
             }
         } else throw Error("can only notify with elements contained in this sorted set");
     }
+    */
 
     ifHas(obj, thenThis, elseThis, ...args) {
         if (this.has(obj)) {
@@ -116,7 +119,13 @@ a distinct internal Symbol to represent binary search negative result. Don't use
 
     // helper function for add; usually don't call postProcessAdd directly
     postProcessAdd(obj) {
-        this.elements.splice(this.processIndex, 0, obj);
+        let elements = this.elements, len = elements.length, index = this.indexName, processIndex = this.processIndex;
+        for (let i = len; i > processIndex; --i) {
+            elements[i-1][index] = i;
+            elements[i] = elements[i-1];
+        }
+        elements[this.processIndex] = obj;
+        obj[index] = this.processIndex;
         ++this.size;
         this.processFound = obj;
         return this;
@@ -135,7 +144,12 @@ a distinct internal Symbol to represent binary search negative result. Don't use
 
     // helper function for delete; usually don't call postProcessDelete directly
     postProcessDelete() {
-        this.elements.splice(this.processIndex, 1);
+        let elements = this.elements, length = elements.length, index = this.indexName;
+        for (let i = this.processIndex; i < length; ++i) {
+            elements[i] = elements[i+1];
+            elements[i][index] = i;
+        }
+        elements.pop();
         --this.size;
         this.processFound = SortedSet.negativeResult;
         return true;
@@ -175,8 +189,12 @@ a distinct internal Symbol to represent binary search negative result. Don't use
         return returner;
     }
 
+    static compareToComparator(a, b) {
+        return a.compareTo(b);
+    }
+
     // used for representing that no element was found which matches the requested value
-    static negativeResult = Symbol("binary search false"); // don't use this object in a sorted set.
+    static negativeResult = Symbol("binary search element not found"); // don't use this object in a sorted set.
 
     static emptyFunction() {}
     static returnMe() {return this}
